@@ -70,7 +70,20 @@ public class UserController {
 
         return ResponseEntity.status(HttpStatus.NOT_FOUND).body("User not found");
     }
+    @PutMapping("/{id}/status")
+    public User updateUserStatus(@PathVariable Long id, @RequestBody StatusUpdateRequest request) {
+        User user = userRepository.findById(id)
+                .orElseThrow(() -> new RuntimeException("User not found"));
+        user.setStatus(request.getStatus());
+        return userRepository.save(user);
+    }
 
+    // DTO for status update
+    public static class StatusUpdateRequest {
+        private String status;
+        public String getStatus() { return status; }
+        public void setStatus(String status) { this.status = status; }
+    }
     // =============================
     // 📋 4. Get All Users (Admin view)
     // =============================

@@ -11,6 +11,7 @@ public class User {
     private String username;
     private String password;
     private String role; // ADMIN, HR, MANAGER
+    private String status;
     private boolean firstLogin = true;
 
     // Getters and Setters
@@ -26,4 +27,11 @@ public class User {
 
     public boolean isFirstLogin() { return firstLogin; }
     public void setFirstLogin(boolean firstLogin) { this.firstLogin = firstLogin; }
+
+    public String getStatus() {
+        return status;
+    }
+    public void setStatus(String status) {
+        this.status = status;
+    }
 }
