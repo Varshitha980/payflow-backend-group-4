@@ -1,67 +1,47 @@
 package com.payflow.payflow.model;
 
 import jakarta.persistence.*;
-import java.time.LocalDate;
 
 @Entity
 public class Employee {
+
     @Id
     @GeneratedValue(strategy = GenerationType.IDENTITY)
     private Long id;
 
     private String name;
-
-
+    private String password;
     private String email;
-    private String phone;
-    private String address;
-    private String position;
+    private boolean firstLogin = true;
+    private String role;
 
-    private LocalDate startDate;
+    // Constructors
+    public Employee() {}
 
-    private int leaves = 12;
-    private String status = "Active";
-
-    @Lob
-    private String education; // Store as JSON string
-
-    @Lob
-    private String experiences; // Store as JSON string
-
-    // Optionally keep these if you want
-    // private int totalExperience;
-    // private String pastExperience;
+    public Employee(String name, String password, String email) {
+        this.name = name;
+        this.password = password;
+        this.email = email;
+        this.role = "EMPLOYEE";
+        this.firstLogin = true;
+    }
 
     // Getters and Setters
     public Long getId() { return id; }
+    public void setId(Long id) { this.id = id; }
+
     public String getName() { return name; }
     public void setName(String name) { this.name = name; }
 
+    public String getPassword() { return password; }
+    public void setPassword(String password) { this.password = password; }
 
     public String getEmail() { return email; }
     public void setEmail(String email) { this.email = email; }
 
-    public String getPhone() { return phone; }
-    public void setPhone(String phone) { this.phone = phone; }
+    public boolean isFirstLogin() { return firstLogin; }
+    public void setFirstLogin(boolean firstLogin) { this.firstLogin = firstLogin; }
 
-    public String getAddress() { return address; }
-    public void setAddress(String address) { this.address = address; }
-
-    public String getPosition() { return position; }
-    public void setPosition(String position) { this.position = position; }
-
-    public LocalDate getStartDate() { return startDate; }
-    public void setStartDate(LocalDate startDate) { this.startDate = startDate; }
-
-    public int getLeaves() { return leaves; }
-    public void setLeaves(int leaves) { this.leaves = leaves; }
-
-    public String getStatus() { return status; }
-    public void setStatus(String status) { this.status = status; }
-
-    public String getEducation() { return education; }
-    public void setEducation(String education) { this.education = education; }
-
-    public String getExperiences() { return experiences; }
-    public void setExperiences(String experiences) { this.experiences = experiences; }
+    public String getRole() { return role; }
+    public void setRole(String role) { this.role = role; }
 }

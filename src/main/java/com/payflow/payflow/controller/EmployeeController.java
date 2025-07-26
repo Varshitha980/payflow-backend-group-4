@@ -1,53 +1,91 @@
 package com.payflow.payflow.controller;
 
-import com.fasterxml.jackson.databind.ObjectMapper;
+import com.payflow.payflow.Service.EmployeeService;
 import com.payflow.payflow.model.Employee;
 import com.payflow.payflow.repository.EmployeeRepository;
 import org.springframework.beans.factory.annotation.Autowired;
+import org.springframework.http.*;
 import org.springframework.web.bind.annotation.*;
 
-import java.util.List;
-import java.util.Map;
+import java.util.*;
+
 @CrossOrigin(origins = "http://localhost:3000")
 @RestController
 @RequestMapping("/api/employees")
 public class EmployeeController {
 
     @Autowired
-    private EmployeeRepository employeeRepository;
+    private EmployeeService employeeService;
 
     @Autowired
-    private ObjectMapper objectMapper;
-    
+    private EmployeeRepository employeeRepository;
+
+    // ✅ 1. Get all employees
     @GetMapping
     public List<Employee> getAllEmployees() {
-        return employeeRepository.findAll();
+        return employeeService.getAllEmployees();
     }
 
-
+    // ✅ 2. Create employee with default password and role
     @PostMapping("/create")
     public Employee createEmployee(@RequestBody Map<String, Object> payload) throws Exception {
-        Employee emp = new Employee();
-        emp.setName((String) payload.get("name"));
-        emp.setEmail((String) payload.get("email"));
-        emp.setPhone((String) payload.get("phone"));
-        emp.setAddress((String) payload.get("address"));
-        emp.setPosition((String) payload.get("position"));
-        emp.setStatus((String) payload.getOrDefault("status", "Active"));
+        return employeeService.createEmployeeWithOnboarding(payload);
+    }
 
-        // Fix: handle leaves as Number and default to 12
-        Object leavesObj = payload.get("leaves");
-        emp.setLeaves(leavesObj != null ? ((Number) leavesObj).intValue() : 12);
+    // ✅ 3. Login
+    @PostMapping("/login")
+    public ResponseEntity<?> login(@RequestBody Map<String, String> payload) {
+        String name = payload.get("name");
+        String password = payload.get("password");
 
-        // Parse startDate if present
-        if (payload.get("startDate") != null) {
-            emp.setStartDate(java.time.LocalDate.parse((String) payload.get("startDate")));
+        Optional<Employee> employee = employeeRepository.findByNameAndPassword(name, password);
+
+        if (employee.isPresent()) {
+            Employee emp = employee.get();
+            Map<String, Object> response = new HashMap<>();
+            response.put("id", emp.getId());
+            response.put("name", emp.getName());
+            response.put("email", emp.getEmail());
+            response.put("firstLogin", emp.isFirstLogin());
+            response.put("role", emp.getRole());
+            return ResponseEntity.ok(response);
+        } else {
+            return ResponseEntity.status(HttpStatus.UNAUTHORIZED).body("Invalid credentials");
+        }
+    }
+    @GetMapping("/{id}")
+    public ResponseEntity<Employee> getEmployeeById(@PathVariable Long id) {
+        return employeeRepository.findById(id)
+
+                .map(ResponseEntity::ok)
+                .orElse(ResponseEntity.notFound().build());
+    }
+
+    // ✅ 4. Reset Password
+    @PostMapping("/reset-password")
+    public ResponseEntity<?> resetPassword(@RequestBody Map<String, String> payload) {
+        String idStr = payload.get("id");
+        String newPassword = payload.get("newPassword");
+
+        if (idStr == null || newPassword == null) {
+            return ResponseEntity.badRequest().body("Missing id or password");
         }
 
-        // Convert education and experiences to JSON strings
-        emp.setEducation(objectMapper.writeValueAsString(payload.get("education")));
-        emp.setExperiences(objectMapper.writeValueAsString(payload.get("experiences")));
+        try {
+            Long id = Long.parseLong(idStr);
+            Optional<Employee> empOpt = employeeRepository.findById(id);
 
-        return employeeRepository.save(emp);
+            if (empOpt.isPresent()) {
+                Employee emp = empOpt.get();
+                emp.setPassword(newPassword);
+                emp.setFirstLogin(false);
+                employeeRepository.save(emp);
+                return ResponseEntity.ok("Password reset successful");
+            } else {
+                return ResponseEntity.status(HttpStatus.NOT_FOUND).body("Employee not found");
+            }
+        } catch (NumberFormatException e) {
+            return ResponseEntity.badRequest().body("Invalid ID format");
+        }
     }
 }
