@@ -28,6 +28,7 @@ public class UserController {
 
         if (user.isPresent() && user.get().getPassword().equals(password)) {
             Map<String, Object> response = new HashMap<>();
+            response.put("id", user.get().getId());
             response.put("username", user.get().getUsername());
             response.put("role", user.get().getRole());
             response.put("firstLogin", user.get().isFirstLogin());

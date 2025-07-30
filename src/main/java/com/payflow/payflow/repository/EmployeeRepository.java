@@ -8,4 +8,7 @@ import java.util.Optional;
 public interface EmployeeRepository extends JpaRepository<Employee, Long> {
     Optional<Employee> findByNameAndPassword(String name, String password);
     Optional<Employee> findByEmailAndPassword(String email, String password);
+    
+    // ✅ NEW: Find employee by email only (for duplicate checking)
+    Optional<Employee> findByEmail(String email);
 }

@@ -38,6 +38,18 @@ public class LeaveRequestController {
         return service.updateLeaveStatus(id, status);
     }
 
+    // ✅ NEW: Specific approve endpoint
+    @PutMapping("/{id}/approve")
+    public LeaveRequest approveLeave(@PathVariable Long id) {
+        return service.updateLeaveStatus(id, "APPROVED");
+    }
+
+    // ✅ NEW: Specific reject endpoint
+    @PutMapping("/{id}/reject")
+    public LeaveRequest rejectLeave(@PathVariable Long id) {
+        return service.updateLeaveStatus(id, "REJECTED");
+    }
+
     // Optional: fallback GET /api/leaves?employeeId=123
     @GetMapping
     public List<LeaveRequest> getLeavesByEmployeeId(@RequestParam(required = false) Long employeeId) {

@@ -28,8 +28,37 @@ public class EmployeeController {
 
     // ✅ 2. Create employee with default password and role
     @PostMapping("/create")
-    public Employee createEmployee(@RequestBody Map<String, Object> payload) throws Exception {
-        return employeeService.createEmployeeWithOnboarding(payload);
+    public ResponseEntity<?> createEmployee(@RequestBody Map<String, Object> payload) {
+        try {
+            // Validate payload
+            if (payload == null) {
+                return ResponseEntity.badRequest().body(Map.of("error", "Request body is required"));
+            }
+
+            // Log the incoming request
+            System.out.println("Creating employee with payload: " + payload);
+
+            Employee createdEmployee = employeeService.createEmployeeWithOnboarding(payload);
+            
+            // Return success response
+            Map<String, Object> response = new HashMap<>();
+            response.put("message", "Employee created successfully");
+            response.put("employee", createdEmployee);
+            
+            return ResponseEntity.ok(response);
+            
+        } catch (IllegalArgumentException e) {
+            // Handle validation errors
+            System.err.println("Validation error in controller: " + e.getMessage());
+            return ResponseEntity.badRequest().body(Map.of("error", e.getMessage()));
+            
+        } catch (Exception e) {
+            // Handle unexpected errors
+            System.err.println("Unexpected error in controller: " + e.getMessage());
+            e.printStackTrace();
+            return ResponseEntity.status(HttpStatus.INTERNAL_SERVER_ERROR)
+                    .body(Map.of("error", "Failed to create employee: " + e.getMessage()));
+        }
     }
 
     // ✅ 3. Login
@@ -46,7 +75,7 @@ public class EmployeeController {
             response.put("id", emp.getId());
             response.put("name", emp.getName());
             response.put("email", emp.getEmail());
-            response.put("firstLogin", emp.isFirstLogin());
+            response.put("firstLogin", emp.getFirstLogin());
             response.put("role", emp.getRole());
             return ResponseEntity.ok(response);
         } else {
