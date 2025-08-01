@@ -26,6 +26,29 @@ public class EmployeeController {
         return employeeService.getAllEmployees();
     }
 
+    // ✅ Get employees by manager ID
+    @GetMapping("/manager/{managerId}")
+    public List<Employee> getEmployeesByManager(@PathVariable Long managerId) {
+        return employeeService.getEmployeesByManager(managerId);
+    }
+
+    // ✅ Get employees without manager (for HR assignment)
+    @GetMapping("/unassigned")
+    public List<Employee> getUnassignedEmployees() {
+        return employeeService.getUnassignedEmployees();
+    }
+
+    // ✅ Assign employee to manager
+    @PutMapping("/{employeeId}/assign-manager/{managerId}")
+    public ResponseEntity<?> assignEmployeeToManager(@PathVariable Long employeeId, @PathVariable Long managerId) {
+        try {
+            Employee updatedEmployee = employeeService.assignEmployeeToManager(employeeId, managerId);
+            return ResponseEntity.ok(updatedEmployee);
+        } catch (Exception e) {
+            return ResponseEntity.badRequest().body(Map.of("error", e.getMessage()));
+        }
+    }
+
     // ✅ 2. Create employee with default password and role
     @PostMapping("/create")
     public ResponseEntity<?> createEmployee(@RequestBody Map<String, Object> payload) {

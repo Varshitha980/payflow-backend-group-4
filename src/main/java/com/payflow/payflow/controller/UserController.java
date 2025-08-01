@@ -92,4 +92,13 @@ public class UserController {
     public ResponseEntity<List<User>> getAllUsers() {
         return ResponseEntity.ok(userRepository.findAll());
     }
+
+    // =============================
+    // 👥 5. Get All Managers (for HR assignment)
+    // =============================
+    @GetMapping("/managers")
+    public ResponseEntity<List<User>> getAllManagers() {
+        List<User> managers = userRepository.findByRole("MANAGER");
+        return ResponseEntity.ok(managers);
+    }
 }

@@ -47,6 +47,15 @@ public class Employee {
     
     private String username;
 
+    @Column(name = "manager_id")
+    private Long managerId;
+    
+    @Column(name = "salary_deduction_days")
+    private Integer salaryDeductionDays = 0; // Track days for which salary was deducted
+    
+    @Column(name = "monthly_salary")
+    private Double monthlySalary = 50000.0; // Default monthly salary
+
     // Constructors
     public Employee() {}
 
@@ -119,4 +128,13 @@ public class Employee {
 
     public String getUsername() { return username; }
     public void setUsername(String username) { this.username = username; }
+
+    public Long getManagerId() { return managerId; }
+    public void setManagerId(Long managerId) { this.managerId = managerId; }
+
+    public Integer getSalaryDeductionDays() { return salaryDeductionDays; }
+    public void setSalaryDeductionDays(Integer salaryDeductionDays) { this.salaryDeductionDays = salaryDeductionDays; }
+
+    public Double getMonthlySalary() { return monthlySalary; }
+    public void setMonthlySalary(Double monthlySalary) { this.monthlySalary = monthlySalary; }
 }

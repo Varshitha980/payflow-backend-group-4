@@ -1,0 +1,142 @@
+<!DOCTYPE html>
+<html>
+<head>
+    <title>Test Manager Leave Requests</title>
+    <style>
+        body { font-family: Arial, sans-serif; margin: 20px; }
+        .section { margin: 20px 0; padding: 15px; border: 1px solid #ccc; }
+        .success { color: green; }
+        .error { color: red; }
+        .info { color: blue; }
+        pre { background: #f5f5f5; padding: 10px; overflow-x: auto; }
+        button { padding: 10px 15px; margin: 5px; cursor: pointer; }
+    </style>
+</head>
+<body>
+    <h1>Manager Leave Request Debug Tool</h1>
+    
+    <div class="section">
+        <h2>1. Check Debug Data</h2>
+        <button onclick="checkDebugData()">Get Debug Data</button>
+        <div id="debugResult"></div>
+    </div>
+    
+    <div class="section">
+        <h2>2. Test Manager Leave Requests</h2>
+        <input type="number" id="managerId" placeholder="Manager ID (e.g., 24)" value="24">
+        <button onclick="testManagerLeaves()">Test Manager Leave Requests</button>
+        <div id="managerResult"></div>
+    </div>
+    
+    <div class="section">
+        <h2>3. Create Test Leave Request</h2>
+        <input type="email" id="employeeEmail" placeholder="Employee Email" value="23wh1a1204@bvrithyderabad.edu.in">
+        <button onclick="createTestLeave()">Create Test Leave</button>
+        <div id="createResult"></div>
+    </div>
+    
+    <div class="section">
+        <h2>4. Use Backend Test Data Creation</h2>
+        <button onclick="createBackendTestData()">Create Backend Test Data</button>
+        <div id="backendResult"></div>
+    </div>
+
+    <script>
+        const BASE_URL = 'http://localhost:8081/api';
+        
+        async function checkDebugData() {
+            const resultDiv = document.getElementById('debugResult');
+            resultDiv.innerHTML = '<p class="info">Loading...</p>';
+            
+            try {
+                const response = await fetch(`${BASE_URL}/leaves/debug`);
+                const data = await response.json();
+                
+                let html = '<h3 class="success">Debug Data Retrieved</h3>';
+                html += `<p><strong>Total Leave Requests:</strong> ${data.totalLeaveRequests}</p>`;
+                html += `<p><strong>Total Employees:</strong> ${data.totalEmployees}</p>`;
+                
+                html += '<h4>Leave Requests:</h4>';
+                html += '<pre>' + JSON.stringify(data.leaveRequests, null, 2) + '</pre>';
+                
+                html += '<h4>Employees:</h4>';
+                html += '<pre>' + JSON.stringify(data.employees, null, 2) + '</pre>';
+                
+                resultDiv.innerHTML = html;
+            } catch (error) {
+                resultDiv.innerHTML = `<p class="error">Error: ${error.message}</p>`;
+            }
+        }
+        
+        async function testManagerLeaves() {
+            const managerId = document.getElementById('managerId').value;
+            const resultDiv = document.getElementById('managerResult');
+            resultDiv.innerHTML = '<p class="info">Testing...</p>';
+            
+            try {
+                const response = await fetch(`${BASE_URL}/leaves/manager/${managerId}`);
+                const data = await response.json();
+                
+                let html = `<h3 class="success">Manager ${managerId} Leave Requests</h3>`;
+                html += `<p><strong>Found:</strong> ${data.length} leave requests</p>`;
+                html += '<pre>' + JSON.stringify(data, null, 2) + '</pre>';
+                
+                resultDiv.innerHTML = html;
+            } catch (error) {
+                resultDiv.innerHTML = `<p class="error">Error: ${error.message}</p>`;
+            }
+        }
+        
+        async function createTestLeave() {
+            const employeeEmail = document.getElementById('employeeEmail').value;
+            const resultDiv = document.getElementById('createResult');
+            resultDiv.innerHTML = '<p class="info">Creating...</p>';
+            
+            try {
+                const testLeave = {
+                    employeeEmail: employeeEmail,
+                    startDate: new Date(Date.now() + 7 * 24 * 60 * 60 * 1000).toISOString().split('T')[0],
+                    endDate: new Date(Date.now() + 10 * 24 * 60 * 60 * 1000).toISOString().split('T')[0],
+                    reason: 'Test leave request from debug tool'
+                };
+                
+                const response = await fetch(`${BASE_URL}/leaves/create`, {
+                    method: 'POST',
+                    headers: { 'Content-Type': 'application/json' },
+                    body: JSON.stringify(testLeave)
+                });
+                
+                const data = await response.json();
+                
+                let html = '<h3 class="success">Test Leave Created</h3>';
+                html += '<pre>' + JSON.stringify(data, null, 2) + '</pre>';
+                
+                resultDiv.innerHTML = html;
+            } catch (error) {
+                resultDiv.innerHTML = `<p class="error">Error: ${error.message}</p>`;
+            }
+        }
+        
+        async function createBackendTestData() {
+            const resultDiv = document.getElementById('backendResult');
+            resultDiv.innerHTML = '<p class="info">Creating backend test data...</p>';
+            
+            try {
+                const response = await fetch(`${BASE_URL}/leaves/create-test-data`, {
+                    method: 'POST',
+                    headers: { 'Content-Type': 'application/json' }
+                });
+                
+                const data = await response.json();
+                
+                let html = '<h3 class="success">Backend Test Data Result</h3>';
+                html += '<pre>' + JSON.stringify(data, null, 2) + '</pre>';
+                
+                resultDiv.innerHTML = html;
+            } catch (error) {
+                resultDiv.innerHTML = `<p class="error">Error: ${error.message}</p>`;
+            }
+        }
+    </script>
+</body>
+</html> 

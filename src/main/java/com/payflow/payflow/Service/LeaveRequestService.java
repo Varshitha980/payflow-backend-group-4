@@ -8,6 +8,7 @@ import com.payflow.payflow.Entity.LeaveRequest;
 import com.payflow.payflow.model.Employee;
 
 import java.util.List;
+import java.util.ArrayList;
 import java.time.LocalDate;
 import java.time.format.DateTimeFormatter;
 
@@ -25,11 +26,75 @@ public class LeaveRequestService {
 
     public LeaveRequest submitLeaveRequest(LeaveRequest request) {
         request.setStatus("PENDING");
+        
+        // Calculate the number of days for this leave request
+        int days = calculateDuration(request.getStartDate(), request.getEndDate());
+        request.setDays(days);
+        
+        // If employeeId is provided but employeeEmail is not, fetch the email
+        if (request.getEmployeeId() != null && (request.getEmployeeEmail() == null || request.getEmployeeEmail().trim().isEmpty())) {
+            Employee employee = employeeRepository.findById(request.getEmployeeId()).orElse(null);
+            if (employee != null) {
+                request.setEmployeeEmail(employee.getEmail());
+            }
+        }
+        
+        // If employeeEmail is provided but employeeId is not, try to find the employee
+        if (request.getEmployeeEmail() != null && request.getEmployeeId() == null) {
+            Employee employee = employeeRepository.findByEmail(request.getEmployeeEmail()).orElse(null);
+            if (employee != null) {
+                request.setEmployeeId(employee.getId());
+            }
+        }
+        
         return repository.save(request);
     }
 
     public List<LeaveRequest> getLeaveRequestsByEmployee(Long employeeId) {
         return repository.findByEmployeeId(employeeId);
+    }
+
+    public List<LeaveRequest> getLeaveRequestsByManager(Long managerId) {
+        System.out.println("🔍 Getting leave requests for manager ID: " + managerId);
+        
+        // First get all employees assigned to this manager
+        List<Employee> managerEmployees = employeeRepository.findByManagerId(managerId);
+        System.out.println("👥 Employees assigned to manager: " + managerEmployees.size());
+        managerEmployees.forEach(emp -> System.out.println("  - " + emp.getName() + " (" + emp.getEmail() + ")"));
+        
+        if (managerEmployees.isEmpty()) {
+            System.out.println("❌ No employees assigned to manager " + managerId);
+            return List.of(); // Return empty list if no employees assigned
+        }
+        
+        // Collect all employee emails and IDs
+        List<String> employeeEmails = managerEmployees.stream()
+                .map(Employee::getEmail)
+                .toList();
+        List<Long> employeeIds = managerEmployees.stream()
+                .map(Employee::getId)
+                .toList();
+        
+        // Get leave requests by employee emails (more efficient)
+        List<LeaveRequest> leavesByEmail = repository.findByEmployeeEmailIn(employeeEmails);
+        System.out.println("📧 Found " + leavesByEmail.size() + " leave requests by email");
+        
+        // Get leave requests by employee IDs (more efficient)
+        List<LeaveRequest> leavesById = repository.findByEmployeeIdIn(employeeIds);
+        System.out.println("🆔 Found " + leavesById.size() + " leave requests by ID");
+        
+        // Combine and remove duplicates
+        List<LeaveRequest> allLeaves = new ArrayList<>(leavesByEmail);
+        for (LeaveRequest leave : leavesById) {
+            if (!allLeaves.stream().anyMatch(existing -> existing.getId().equals(leave.getId()))) {
+                allLeaves.add(leave);
+            }
+        }
+        
+        System.out.println("📋 Found " + allLeaves.size() + " leave requests for manager's team");
+        allLeaves.forEach(leave -> System.out.println("  - Leave ID: " + leave.getId() + ", Employee: " + leave.getEmployeeEmail() + ", Status: " + leave.getStatus()));
+        
+        return allLeaves;
     }
 
     public List<LeaveRequest> getAllLeaveRequests() {
@@ -39,6 +104,30 @@ public class LeaveRequestService {
     public LeaveRequest updateLeaveStatus(Long id, String status) {
         LeaveRequest req = repository.findById(id).orElseThrow();
         req.setStatus(status);
+        
+        // If leave is approved, update employee's leave balance and handle salary deductions
+        if ("APPROVED".equals(status)) {
+            Employee employee = employeeRepository.findById(req.getEmployeeId()).orElse(null);
+            if (employee != null) {
+                int leaveDays = req.getDays() != null ? req.getDays() : calculateDuration(req.getStartDate(), req.getEndDate());
+                int currentBalance = employee.getLeaveBalance() != null ? employee.getLeaveBalance() : 12;
+                
+                if (currentBalance >= leaveDays) {
+                    // Sufficient leave balance
+                    employee.setLeaveBalance(currentBalance - leaveDays);
+                    req.setSalaryDeducted(false);
+                } else {
+                    // Insufficient leave balance - salary deduction
+                    int excessDays = leaveDays - currentBalance;
+                    employee.setLeaveBalance(0);
+                    employee.setSalaryDeductionDays(employee.getSalaryDeductionDays() + excessDays);
+                    req.setSalaryDeducted(true);
+                }
+                
+                employeeRepository.save(employee);
+            }
+        }
+        
         LeaveRequest updated = repository.save(req);
 
         // ✅ Send detailed email notification
@@ -93,9 +182,14 @@ public class LeaveRequestService {
         body.append("• Employee ID: ").append(leaveRequest.getEmployeeId()).append("\n");
         body.append("• Start Date: ").append(formatDate(leaveRequest.getStartDate())).append("\n");
         body.append("• End Date: ").append(formatDate(leaveRequest.getEndDate())).append("\n");
-        body.append("• Duration: ").append(calculateDuration(leaveRequest.getStartDate(), leaveRequest.getEndDate())).append(" days\n");
+        body.append("• Duration: ").append(leaveRequest.getDays() != null ? leaveRequest.getDays() : calculateDuration(leaveRequest.getStartDate(), leaveRequest.getEndDate())).append(" days\n");
         body.append("• Reason: ").append(leaveRequest.getReason()).append("\n");
-        body.append("• Status: ").append(status).append("\n\n");
+        body.append("• Status: ").append(status).append("\n");
+        
+        if ("APPROVED".equals(status) && leaveRequest.getSalaryDeducted() != null && leaveRequest.getSalaryDeducted()) {
+            body.append("• ⚠️  Salary Deduction: Yes (insufficient leave balance)\n");
+        }
+        body.append("\n");
         
         if ("APPROVED".equals(status)) {
             body.append("✅ Your leave has been approved. Please ensure to:\n");

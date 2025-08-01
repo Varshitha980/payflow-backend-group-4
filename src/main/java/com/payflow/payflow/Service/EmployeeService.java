@@ -19,9 +19,15 @@ public class EmployeeService {
 
     public Employee createEmployeeWithOnboarding(Map<String, Object> payload) throws Exception {
         try {
+            // Log the full payload for debugging
+            System.out.println("Received payload: " + payload);
+            
             // Validate required fields
             String name = (String) payload.get("name");
             String email = (String) payload.get("email");
+            
+            System.out.println("Name: " + name);
+            System.out.println("Email: " + email);
             
             if (name == null || name.trim().isEmpty()) {
                 throw new IllegalArgumentException("Employee name is required");
@@ -55,6 +61,38 @@ public class EmployeeService {
             employee.setTotalExperience(0); // Default experience
             employee.setUsername(email.trim()); // Use email as username
 
+            // Handle additional fields from payload
+            if (payload.containsKey("phone")) {
+                employee.setPhone((String) payload.get("phone"));
+            }
+            if (payload.containsKey("address")) {
+                employee.setAddress((String) payload.get("address"));
+            }
+            if (payload.containsKey("position")) {
+                employee.setPosition((String) payload.get("position"));
+            }
+            if (payload.containsKey("startDate") && payload.get("startDate") != null) {
+                employee.setStartDate(java.time.LocalDate.parse((String) payload.get("startDate")));
+            }
+            if (payload.containsKey("experiences")) {
+                Object experiences = payload.get("experiences");
+                if (experiences != null) {
+                    employee.setExperiences(experiences.toString());
+                }
+            }
+            if (payload.containsKey("education")) {
+                Object education = payload.get("education");
+                if (education != null) {
+                    employee.setEducation(education.toString());
+                }
+            }
+
+            // Set manager ID if provided in payload
+            if (payload.containsKey("managerId") && payload.get("managerId") != null) {
+                Long managerId = Long.valueOf(payload.get("managerId").toString());
+                employee.setManagerId(managerId);
+            }
+
             // Save to database
             Employee savedEmployee = employeeRepository.save(employee);
             
@@ -77,5 +115,24 @@ public class EmployeeService {
 
     public Employee findByEmailAndPassword(String email, String password) {
         return employeeRepository.findByEmailAndPassword(email, password).orElse(null);
+    }
+
+    public List<Employee> getEmployeesByManager(Long managerId) {
+        return employeeRepository.findByManagerId(managerId);
+    }
+
+    public List<Employee> getUnassignedEmployees() {
+        return employeeRepository.findByManagerIdIsNull();
+    }
+
+    public Employee assignEmployeeToManager(Long employeeId, Long managerId) throws Exception {
+        Optional<Employee> employeeOpt = employeeRepository.findById(employeeId);
+        if (!employeeOpt.isPresent()) {
+            throw new Exception("Employee not found");
+        }
+        
+        Employee employee = employeeOpt.get();
+        employee.setManagerId(managerId);
+        return employeeRepository.save(employee);
     }
 }
