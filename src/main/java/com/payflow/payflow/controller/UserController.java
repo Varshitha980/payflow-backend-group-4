@@ -1,4 +1,4 @@
-package com.payflow.payflow.controller;
+package com.payflow.payflow.Controller;
 
 import com.payflow.payflow.model.User;
 import com.payflow.payflow.repository.UserRepository;
@@ -16,9 +16,11 @@ public class UserController {
     @Autowired
     private UserRepository userRepository;
 
-    // =============================
-    // 🔐 1. Login Endpoint
-    // =============================
+    /**
+     * Endpoint for user login.
+     * @param body A Map containing the "username" and "password".
+     * @return A ResponseEntity with user details on success or an unauthorized message on failure.
+     */
     @PostMapping("/login")
     public ResponseEntity<?> login(@RequestBody Map<String, String> body) {
         String username = body.get("username");
@@ -38,9 +40,11 @@ public class UserController {
         return ResponseEntity.status(HttpStatus.UNAUTHORIZED).body("Invalid credentials");
     }
 
-    // =============================
-    // 👤 2. Admin Creates HR/Manager
-    // =============================
+    /**
+     * Endpoint for an admin to create new users (HR or Manager).
+     * @param user The User object to be created.
+     * @return A ResponseEntity with the created user object or a conflict message if the username already exists.
+     */
     @PostMapping("/create")
     public ResponseEntity<?> createUser(@RequestBody User user) {
         // Prevent duplicate usernames
@@ -52,9 +56,11 @@ public class UserController {
         return ResponseEntity.ok(userRepository.save(user));
     }
 
-    // =============================
-    // 🔑 3. Reset Password (First Login)
-    // =============================
+    /**
+     * Endpoint to reset a user's password, typically on their first login.
+     * @param body A Map containing the "username" and the "newPassword".
+     * @return A ResponseEntity with the updated user object or a not found message if the user does not exist.
+     */
     @PostMapping("/reset-password")
     public ResponseEntity<?> resetPassword(@RequestBody Map<String, String> body) {
         String username = body.get("username");
@@ -71,6 +77,14 @@ public class UserController {
 
         return ResponseEntity.status(HttpStatus.NOT_FOUND).body("User not found");
     }
+
+    /**
+     * Endpoint to update a user's status.
+     * @param id The ID of the user to update.
+     * @param request A DTO containing the new status.
+     * @return The updated User object.
+     * @throws RuntimeException if the user is not found.
+     */
     @PutMapping("/{id}/status")
     public User updateUserStatus(@PathVariable Long id, @RequestBody StatusUpdateRequest request) {
         User user = userRepository.findById(id)
@@ -79,23 +93,28 @@ public class UserController {
         return userRepository.save(user);
     }
 
-    // DTO for status update
+    /**
+     * DTO for status update requests.
+     */
     public static class StatusUpdateRequest {
         private String status;
         public String getStatus() { return status; }
         public void setStatus(String status) { this.status = status; }
     }
-    // =============================
-    // 📋 4. Get All Users (Admin view)
-    // =============================
+
+    /**
+     * Endpoint to retrieve a list of all users.
+     * @return A ResponseEntity with a list of all User objects.
+     */
     @GetMapping
     public ResponseEntity<List<User>> getAllUsers() {
         return ResponseEntity.ok(userRepository.findAll());
     }
 
-    // =============================
-    // 👥 5. Get All Managers (for HR assignment)
-    // =============================
+    /**
+     * Endpoint to retrieve a list of all users with the "MANAGER" role.
+     * @return A ResponseEntity with a list of all manager User objects.
+     */
     @GetMapping("/managers")
     public ResponseEntity<List<User>> getAllManagers() {
         List<User> managers = userRepository.findByRole("MANAGER");

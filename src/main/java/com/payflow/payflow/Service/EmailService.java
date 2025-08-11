@@ -23,12 +23,12 @@ public class EmailService {
             System.out.println("   To: " + to);
             System.out.println("   Subject: " + subject);
             System.out.println("   Content: " + text.substring(0, Math.min(100, text.length())) + "...");
-            
+
             if (to == null || to.trim().isEmpty()) {
                 System.err.println("❌ Cannot send email: recipient email is null or empty");
                 return;
             }
-            
+
             // ACTUAL EMAIL SENDING
             SimpleMailMessage message = new SimpleMailMessage();
             message.setFrom(fromEmail);
@@ -39,7 +39,7 @@ public class EmailService {
             System.out.println("✅ Email sent successfully to: " + to);
         } catch (Exception e) {
             System.err.println("❌ Failed to send email to: " + to);
-            System.err.println("Error: " + e.getMessage());
+            System.err.println("   Reason: " + e.getMessage());
             e.printStackTrace();
         }
     }

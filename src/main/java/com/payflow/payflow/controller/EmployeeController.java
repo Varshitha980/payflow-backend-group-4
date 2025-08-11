@@ -1,6 +1,7 @@
-package com.payflow.payflow.controller;
+package com.payflow.payflow.Controller;
 
 import com.payflow.payflow.Service.EmployeeService;
+import com.payflow.payflow.Service.PaymentHoldService;
 import com.payflow.payflow.model.Employee;
 import com.payflow.payflow.repository.EmployeeRepository;
 import org.springframework.beans.factory.annotation.Autowired;
@@ -19,26 +20,54 @@ public class EmployeeController {
 
     @Autowired
     private EmployeeRepository employeeRepository;
+    
+    @Autowired
+    private PaymentHoldService paymentHoldService;
 
-    // ✅ 1. Get all employees
+    /**
+     * Endpoint to retrieve a list of all employees in the system.
+     * This method also checks if each employee has a payment hold and sets the hasPaymentHold flag accordingly.
+     * @return A List of Employee objects with payment hold status.
+     */
     @GetMapping
     public List<Employee> getAllEmployees() {
-        return employeeService.getAllEmployees();
+        List<Employee> employees = employeeService.getAllEmployees();
+        
+        // Check payment hold status for each employee
+        for (Employee employee : employees) {
+            boolean hasHold = paymentHoldService.hasPaymentHold(employee.getId());
+            employee.setHasPaymentHold(hasHold);
+        }
+        
+        return employees;
     }
 
-    // ✅ Get employees by manager ID
+    /**
+     * Endpoint to retrieve all employees who report to a specific manager.
+     * @param managerId The ID of the manager.
+     * @return A List of Employee objects managed by the given manager.
+     */
     @GetMapping("/manager/{managerId}")
     public List<Employee> getEmployeesByManager(@PathVariable Long managerId) {
         return employeeService.getEmployeesByManager(managerId);
     }
 
-    // ✅ Get employees without manager (for HR assignment)
+    /**
+     * Endpoint to retrieve all employees who have not yet been assigned a manager.
+     * This is useful for HR during the onboarding process.
+     * @return A List of unassigned Employee objects.
+     */
     @GetMapping("/unassigned")
     public List<Employee> getUnassignedEmployees() {
         return employeeService.getUnassignedEmployees();
     }
 
-    // ✅ Assign employee to manager
+    /**
+     * Endpoint to assign an existing employee to a manager.
+     * @param employeeId The ID of the employee to be assigned.
+     * @param managerId The ID of the manager they will report to.
+     * @return A ResponseEntity containing the updated Employee object on success, or an error message on failure.
+     */
     @PutMapping("/{employeeId}/assign-manager/{managerId}")
     public ResponseEntity<?> assignEmployeeToManager(@PathVariable Long employeeId, @PathVariable Long managerId) {
         try {
@@ -49,34 +78,28 @@ public class EmployeeController {
         }
     }
 
-    // ✅ 2. Create employee with default password and role
+    /**
+     * Endpoint to create a new employee with an onboarding process.
+     * This method handles initial employee data creation, setting a default password, and role.
+     * @param payload A Map containing the employee details.
+     * @return A ResponseEntity with a status and a map containing the success status and the created employee object.
+     */
     @PostMapping("/create")
     public ResponseEntity<?> createEmployee(@RequestBody Map<String, Object> payload) {
         try {
-            // Validate payload
             if (payload == null) {
                 return ResponseEntity.badRequest().body(Map.of("error", "Request body is required"));
             }
-
-            // Log the incoming request
             System.out.println("Creating employee with payload: " + payload);
-
             Employee createdEmployee = employeeService.createEmployeeWithOnboarding(payload);
-            
-            // Return success response
             Map<String, Object> response = new HashMap<>();
             response.put("message", "Employee created successfully");
             response.put("employee", createdEmployee);
-            
             return ResponseEntity.ok(response);
-            
         } catch (IllegalArgumentException e) {
-            // Handle validation errors
             System.err.println("Validation error in controller: " + e.getMessage());
             return ResponseEntity.badRequest().body(Map.of("error", e.getMessage()));
-            
         } catch (Exception e) {
-            // Handle unexpected errors
             System.err.println("Unexpected error in controller: " + e.getMessage());
             e.printStackTrace();
             return ResponseEntity.status(HttpStatus.INTERNAL_SERVER_ERROR)
@@ -84,60 +107,24 @@ public class EmployeeController {
         }
     }
 
-    // ✅ 3. Login
-    @PostMapping("/login")
-    public ResponseEntity<?> login(@RequestBody Map<String, String> payload) {
-        String name = payload.get("name");
-        String password = payload.get("password");
-
-        Optional<Employee> employee = employeeRepository.findByNameAndPassword(name, password);
-
-        if (employee.isPresent()) {
-            Employee emp = employee.get();
-            Map<String, Object> response = new HashMap<>();
-            response.put("id", emp.getId());
-            response.put("name", emp.getName());
-            response.put("email", emp.getEmail());
-            response.put("firstLogin", emp.getFirstLogin());
-            response.put("role", emp.getRole());
-            return ResponseEntity.ok(response);
-        } else {
-            return ResponseEntity.status(HttpStatus.UNAUTHORIZED).body("Invalid credentials");
-        }
-    }
+    /**
+     * Endpoint to retrieve a single employee by their ID.
+     * This method also checks if the employee has a payment hold and sets the hasPaymentHold flag accordingly.
+     * @param id The ID of the employee.
+     * @return A ResponseEntity containing the Employee object if found, or a 404 Not Found status.
+     */
     @GetMapping("/{id}")
     public ResponseEntity<Employee> getEmployeeById(@PathVariable Long id) {
         return employeeRepository.findById(id)
-
-                .map(ResponseEntity::ok)
+                .map(employee -> {
+                    // Check if employee has a payment hold
+                    boolean hasHold = paymentHoldService.hasPaymentHold(employee.getId());
+                    employee.setHasPaymentHold(hasHold);
+                    return ResponseEntity.ok(employee);
+                })
                 .orElse(ResponseEntity.notFound().build());
     }
 
-    // ✅ 4. Reset Password
-    @PostMapping("/reset-password")
-    public ResponseEntity<?> resetPassword(@RequestBody Map<String, String> payload) {
-        String idStr = payload.get("id");
-        String newPassword = payload.get("newPassword");
-
-        if (idStr == null || newPassword == null) {
-            return ResponseEntity.badRequest().body("Missing id or password");
-        }
-
-        try {
-            Long id = Long.parseLong(idStr);
-            Optional<Employee> empOpt = employeeRepository.findById(id);
-
-            if (empOpt.isPresent()) {
-                Employee emp = empOpt.get();
-                emp.setPassword(newPassword);
-                emp.setFirstLogin(false);
-                employeeRepository.save(emp);
-                return ResponseEntity.ok("Password reset successful");
-            } else {
-                return ResponseEntity.status(HttpStatus.NOT_FOUND).body("Employee not found");
-            }
-        } catch (NumberFormatException e) {
-            return ResponseEntity.badRequest().body("Invalid ID format");
-        }
-    }
+    // The 'login' and 'reset-password' endpoints have been removed to centralize all authentication
+    // logic within the AuthController.
 }

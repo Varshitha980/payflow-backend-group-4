@@ -1,42 +1,49 @@
 package com.payflow.payflow.Entity;
 
 import jakarta.persistence.*;
+import java.time.LocalDate;
 
+/**
+ * Represents a leave request submitted by an employee.
+ * This entity maps to the `leave_request` table in the database.
+ */
 @Entity
 @Table(name = "leave_request")
 public class LeaveRequest {
+
     @Id
     @GeneratedValue(strategy = GenerationType.IDENTITY)
     private Long id;
-    
+
     @Column(name = "employee_id")
     private Long employeeId;
-    
-    @Column(name = "employee_email")
-    private String employeeEmail; // ✅ NEW FIELD
-    
-    @Column(name = "start_date")
-    private String startDate;
-    
-    @Column(name = "end_date")
-    private String endDate;
-    
-    private String reason;
-    private String status; // PENDING, APPROVED, REJECTED
-    
-    @Column(name = "days")
-    private Integer days; // Number of days for this leave request
-    
-    @Column(name = "salary_deducted")
-    private Boolean salaryDeducted = false; // Track if salary was deducted for this leave
-    
-    @Column(name = "first_login")
-    private Boolean firstLogin = true; // Keep existing field
-    
-    @Column(name = "default_password")
-    private String defaultPassword = "1234"; // Keep existing field
 
-    // Getters and Setters
+    @Column(name = "employee_email")
+    private String employeeEmail;
+
+    @Column(name = "start_date")
+    private LocalDate startDate; // changed from String to LocalDate
+
+    @Column(name = "end_date")
+    private LocalDate endDate;   // changed from String to LocalDate
+
+    private String reason;
+
+    private String status; // PENDING, APPROVED, REJECTED
+
+    @Column(name = "days")
+    private Integer days;
+
+    @Column(name = "salary_deducted")
+    private Boolean salaryDeducted = false;
+
+    @Column(name = "first_login")
+    private Boolean firstLogin = true;
+
+    @Column(name = "default_password")
+    private String defaultPassword = "1234";
+
+    // --- Getters and Setters ---
     public Long getId() { return id; }
     public void setId(Long id) { this.id = id; }
 
@@ -46,11 +53,11 @@ public class LeaveRequest {
     public String getEmployeeEmail() { return employeeEmail; }
     public void setEmployeeEmail(String employeeEmail) { this.employeeEmail = employeeEmail; }
 
-    public String getStartDate() { return startDate; }
-    public void setStartDate(String startDate) { this.startDate = startDate; }
+    public LocalDate getStartDate() { return startDate; }
+    public void setStartDate(LocalDate startDate) { this.startDate = startDate; }
 
-    public String getEndDate() { return endDate; }
-    public void setEndDate(String endDate) { this.endDate = endDate; }
+    public LocalDate getEndDate() { return endDate; }
+    public void setEndDate(LocalDate endDate) { this.endDate = endDate; }
 
     public String getReason() { return reason; }
     public void setReason(String reason) { this.reason = reason; }
@@ -63,11 +70,10 @@ public class LeaveRequest {
 
     public Boolean getSalaryDeducted() { return salaryDeducted; }
     public void setSalaryDeducted(Boolean salaryDeducted) { this.salaryDeducted = salaryDeducted; }
-    
+
     public Boolean getFirstLogin() { return firstLogin; }
     public void setFirstLogin(Boolean firstLogin) { this.firstLogin = firstLogin; }
-    
+
     public String getDefaultPassword() { return defaultPassword; }
     public void setDefaultPassword(String defaultPassword) { this.defaultPassword = defaultPassword; }
 }
-
