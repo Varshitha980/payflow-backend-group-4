@@ -118,15 +118,16 @@ public class AuthController {
 
     /**
      * Reset Password for an Employee.
+     * PF Number validation has been removed as requested.
+     * NOTE: This is a security risk as any user with an employee's ID can reset their password.
      */
     @PostMapping("/reset-password/employee")
     public ResponseEntity<?> resetEmployeePassword(@RequestBody Map<String, String> body) {
         String idStr = body.get("id");
         String newPassword = body.get("newPassword");
-        String pfNumber = body.get("pfNumber");
 
-        if (idStr == null || newPassword == null || pfNumber == null) {
-            return ResponseEntity.badRequest().body(Map.of("error", "Missing id, password, or PF Number"));
+        if (idStr == null || newPassword == null) {
+            return ResponseEntity.badRequest().body(Map.of("error", "Missing id or newPassword"));
         }
 
         try {
@@ -135,13 +136,10 @@ public class AuthController {
 
             if (empOpt.isPresent()) {
                 Employee emp = empOpt.get();
-                
-                // Verify PF Number
-                if (emp.getPfNumber() == null || !emp.getPfNumber().equals(pfNumber)) {
-                    return ResponseEntity.status(HttpStatus.UNAUTHORIZED)
-                            .body(Map.of("error", "Invalid PF Number. Please check your PF Number and try again."));
-                }
-                
+
+                // PF Number validation has been removed as requested
+                // This is now a security vulnerability.
+
                 emp.setPassword(newPassword);
                 emp.setFirstLogin(false);
                 employeeRepository.save(emp);
